@@ -57,3 +57,32 @@ test("coerceFrontmatterDate returns null for null/undefined", () => {
   assert.equal(dateUtils.coerceFrontmatterDate(null), null);
   assert.equal(dateUtils.coerceFrontmatterDate(undefined), null);
 });
+
+test("resolveArchivedEventFields prefers frontmatter values when present", () => {
+  const event = { completed: false, completedAt: null, startedAt: null };
+  const frontmatter = { completed: true, completedAt: "2026-06-10 15:29:17", startedAt: "2026-06-10 14:42:32" };
+  assert.deepEqual(dateUtils.resolveArchivedEventFields(event, frontmatter), {
+    completed: true,
+    completedAt: "2026-06-10 15:29:17",
+    startedAt: "2026-06-10 14:42:32"
+  });
+});
+
+test("resolveArchivedEventFields falls back to event values when frontmatter is null", () => {
+  const event = { completed: true, completedAt: "2026-06-10 15:29:17", startedAt: "2026-06-10 14:42:32" };
+  assert.deepEqual(dateUtils.resolveArchivedEventFields(event, null), {
+    completed: true,
+    completedAt: "2026-06-10 15:29:17",
+    startedAt: "2026-06-10 14:42:32"
+  });
+});
+
+test("resolveArchivedEventFields falls back per-field for partial frontmatter", () => {
+  const event = { completed: true, completedAt: "2026-06-10 15:29:17", startedAt: "2026-06-10 14:00:00" };
+  const frontmatter = { completedAt: null, startedAt: "2026-06-10 14:42:32" };
+  assert.deepEqual(dateUtils.resolveArchivedEventFields(event, frontmatter), {
+    completed: true,
+    completedAt: "2026-06-10 15:29:17",
+    startedAt: "2026-06-10 14:42:32"
+  });
+});
