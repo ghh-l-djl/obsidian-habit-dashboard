@@ -7,3 +7,4 @@ Thumbs.db
 .cache/
 .tmp/
 .git/COMMIT_MSG_TMP.txt
+.chat/
