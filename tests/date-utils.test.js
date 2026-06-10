@@ -43,3 +43,17 @@ test("shiftMonth wraps year correctly", () => {
   const prev = dateUtils.shiftMonth(2026, 0, -1);
   assert.deepEqual(prev, { year: 2025, monthIndex: 11 });
 });
+
+test("coerceFrontmatterDate passes strings through unchanged", () => {
+  assert.equal(dateUtils.coerceFrontmatterDate("2026-06-10 14:42:32"), "2026-06-10 14:42:32");
+});
+
+test("coerceFrontmatterDate formats Date instances as local datetime strings", () => {
+  const date = new Date(2026, 5, 10, 14, 42, 32);
+  assert.equal(dateUtils.coerceFrontmatterDate(date), "2026-06-10 14:42:32");
+});
+
+test("coerceFrontmatterDate returns null for null/undefined", () => {
+  assert.equal(dateUtils.coerceFrontmatterDate(null), null);
+  assert.equal(dateUtils.coerceFrontmatterDate(undefined), null);
+});
