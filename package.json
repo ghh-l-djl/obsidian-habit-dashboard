@@ -1,0 +1,10 @@
+{
+  "name": "habit-dashboard",
+  "version": "1.0.2",
+  "private": true,
+  "description": "Development tooling for Habit Dashboard plugin.",
+  "scripts": {
+    "build": "node scripts/bundle.js",
+    "test": "node --test tests/*.test.js"
+  }
+}
