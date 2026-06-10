@@ -7,6 +7,7 @@ An Obsidian dashboard plugin that gathers your daily events, data logs, tasks, c
 ## Features
 
 - **Calendar + Daily Events** — A month mini-calendar lets you switch the focused date; the events column on the right manages today's items, and the More button opens a weekly view that supports archiving. Each event can link to its own Markdown note (auto-created under `Habit Dashboard/Events/`) — click the title to open it, click ▶ to mark it started, and postpone unfinished events to tomorrow (one at a time, or all at once from the weekly view). Archived weeks show task duration and link back to the note.
+![Habit Dashboard archive](screenshots/archive.png)
 - **Timer** — A standalone countdown timer pinned to the left sidebar (60 minutes by default, not tied to any task). Click the time display to set a custom duration, then Start / Pause / Resume / Reset — it keeps running even after closing and reopening Obsidian, and shows a notice when time's up.
 
 <img src="screenshots/timer-running.png" width="220" alt="Timer running"> <img src="screenshots/timer-paused.png" width="220" alt="Timer paused">

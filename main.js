@@ -697,6 +697,23 @@ function timeKey(date) {
   return `${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}${pad2(d.getMilliseconds() % 1000).slice(0, 2)}`;
 }
 
+function coerceFrontmatterDate(value) {
+  if (typeof value === "string") return value;
+  if (value instanceof Date) {
+    return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())} ${pad2(value.getHours())}:${pad2(value.getMinutes())}:${pad2(value.getSeconds())}`;
+  }
+  return null;
+}
+
+function resolveArchivedEventFields(event, frontmatter) {
+  const fm = frontmatter || {};
+  return {
+    completed: fm.completed !== undefined ? fm.completed : event.completed,
+    completedAt: fm.completedAt != null ? fm.completedAt : event.completedAt,
+    startedAt: fm.startedAt != null ? fm.startedAt : event.startedAt
+  };
+}
+
 module.exports = {
   pad2,
   startOfDay,
@@ -717,7 +734,9 @@ module.exports = {
   formatTimeDigits,
   formatTimeDisplay,
   nowTimeParts,
-  timeKey
+  timeKey,
+  coerceFrontmatterDate,
+  resolveArchivedEventFields
 };
 
 };
@@ -864,7 +883,8 @@ function normalizeDailyEvents(data) {
         order: Number.isFinite(event?.order) ? event.order : idx,
         filePath: typeof event?.filePath === "string" ? event.filePath : null,
         createdAt: typeof event?.createdAt === "string" ? event.createdAt : null,
-        completedAt: typeof event?.completedAt === "string" ? event.completedAt : null
+        completedAt: typeof event?.completedAt === "string" ? event.completedAt : null,
+        startedAt: typeof event?.startedAt === "string" ? event.startedAt : null
       }))
       .sort((a, b) => a.order - b.order);
     list.forEach((event, idx) => {
@@ -1544,6 +1564,7 @@ function _consumePendingWrite(filePath) {
 }
 
 const { makeId } = __yd_require("lib/store");
+const { coerceFrontmatterDate } = __yd_require("lib/date-utils");
 const { TFile } = require("obsidian");
 
 function sanitizeFilename(str) {
@@ -1642,6 +1663,19 @@ async function updateEventFrontmatter(app, filePath, partial) {
     _consumePendingWrite(filePath);
     throw e;
   }
+}
+
+function getEventFrontmatter(app, filePath) {
+  if (!filePath) return null;
+  const file = app.vault.getAbstractFileByPath(filePath);
+  if (!(file instanceof TFile)) return null;
+  const fm = app.metadataCache.getFileCache(file)?.frontmatter;
+  if (!fm) return null;
+  return {
+    completed: typeof fm.completed === "boolean" ? fm.completed : undefined,
+    completedAt: coerceFrontmatterDate(fm.completedAt),
+    startedAt: coerceFrontmatterDate(fm.startedAt)
+  };
 }
 
 async function writeBoxChecklist(app, filePath, tasks) {
@@ -1763,22 +1797,32 @@ async function handleEventMetadataChanged(plugin, file) {
   if (!matchedEvent) return;
 
   const fileCompleted = !!fm.completed;
-  if (fileCompleted === matchedEvent.completed) return;
+  const completedChanged = fileCompleted !== matchedEvent.completed;
 
-  const newCompletedAt = fileCompleted ? formatLocalDateTime(new Date()) : null;
+  const fileStartedAt = coerceFrontmatterDate(fm.startedAt);
+  const startedAtChanged = fileStartedAt !== (matchedEvent.startedAt ?? null);
 
-  _addPendingWrite(filePath);
-  try {
-    await plugin.app.fileManager.processFrontMatter(file, (fmObj) => {
-      fmObj.completedAt = newCompletedAt;
-    });
-  } catch (e) {
-    _consumePendingWrite(filePath);
-    return; // File write failed — don't persist inconsistent state
+  if (!completedChanged && !startedAtChanged) return;
+
+  if (completedChanged) {
+    const newCompletedAt = fileCompleted ? formatLocalDateTime(new Date()) : null;
+    _addPendingWrite(filePath);
+    try {
+      await plugin.app.fileManager.processFrontMatter(file, (fmObj) => {
+        fmObj.completedAt = newCompletedAt;
+      });
+    } catch (e) {
+      _consumePendingWrite(filePath);
+      return; // File write failed — don't persist inconsistent state
+    }
+    matchedEvent.completed = fileCompleted;
+    matchedEvent.completedAt = newCompletedAt;
   }
 
-  matchedEvent.completed = fileCompleted;
-  matchedEvent.completedAt = newCompletedAt;
+  if (startedAtChanged) {
+    matchedEvent.startedAt = fileStartedAt;
+  }
+
   await plugin.saveData(plugin.settings);
   plugin.refreshAllViews();
 }
@@ -1923,6 +1967,7 @@ module.exports = {
   openNote,
   trashNote,
   updateEventFrontmatter,
+  getEventFrontmatter,
   writeBoxChecklist,
   parseBoxChecklist,
   isYoriEventFile,
@@ -1948,7 +1993,8 @@ const {
   getMonthMatrix,
   shiftMonth,
   getMondayOf,
-  formatYearKey
+  formatYearKey,
+  resolveArchivedEventFields
 } = __yd_require("lib/date-utils");
 const { makeId } = __yd_require("lib/store");
 const { ConfirmModal, FullPageModal } = __yd_require("lib/ui-modals");
@@ -2623,7 +2669,11 @@ function archiveWeek(ctx, monday, sunday) {
           const hasNotes = event.filePath
             ? await noteManager.hasExtraContent(ctx.app, event.filePath)
             : false;
-          return { event, dateKey, hasNotes };
+          const frontmatter = event.filePath
+            ? noteManager.getEventFrontmatter(ctx.app, event.filePath)
+            : null;
+          const resolved = resolveArchivedEventFields(event, frontmatter);
+          return { event, dateKey, hasNotes, resolved };
         }));
         weekData.push({ dateKey, enriched });
       }
@@ -2633,10 +2683,10 @@ function archiveWeek(ctx, monday, sunday) {
         heading: dateKey,
         lines: enriched.length === 0
           ? ["(空)"]
-          : enriched.map(({ event, hasNotes }) => {
-              const check = event.completed ? "x" : " ";
+          : enriched.map(({ event, hasNotes, resolved }) => {
+              const check = resolved.completed ? "x" : " ";
               const title = event.title || "";
-              const duration = formatDuration(event.startedAt, event.completedAt);
+              const duration = formatDuration(resolved.startedAt, resolved.completedAt);
               if (hasNotes && event.filePath) {
                 const linkPath = event.filePath.replace(/\.md$/, "");
                 return `- [${check}] [[${linkPath}|${title}]]${duration}`;
@@ -2662,7 +2712,7 @@ function archiveWeek(ctx, monday, sunday) {
 
       // Clean up MD files only when completed and no extra content
       const toClean = weekData.flatMap(({ enriched }) =>
-        enriched.filter(({ hasNotes, event }) => !hasNotes && event.completed && event.filePath)
+        enriched.filter(({ hasNotes, event, resolved }) => !hasNotes && resolved.completed && event.filePath)
       );
       for (const { event, dateKey } of toClean) {
         await noteManager.disassociateAndDeleteNote(ctx.app, ctx.settings, dateKey, event.id);
