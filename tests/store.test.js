@@ -71,6 +71,17 @@ test("normalizeDailyEvents sorts and reindexes order", () => {
   );
 });
 
+test("normalizeDailyEvents preserves startedAt and defaults missing values to null", () => {
+  const out = store.normalizeDailyEvents({
+    "2026-06-10": [
+      { id: "a", title: "A", order: 0, startedAt: "2026-06-10 14:42:32", completedAt: "2026-06-10 15:29:17" },
+      { id: "b", title: "B", order: 1 }
+    ]
+  });
+  assert.equal(out["2026-06-10"][0].startedAt, "2026-06-10 14:42:32");
+  assert.equal(out["2026-06-10"][1].startedAt, null);
+});
+
 test("normalizeCheckIn defaults cycleDays to 1 when missing", () => {
   const settings = store.normalizeSettings({
     data: {
