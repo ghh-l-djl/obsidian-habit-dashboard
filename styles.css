@@ -56,9 +56,10 @@ body .mod-root .workspace-leaf-content .view-content.yd-dashboard-host .yd-view-
   background-image: none !important;
 }
 
-/* Some themes paint the leaf container, not only .view-content */
-body .workspace-leaf-content:has(> .view-content.yd-dashboard-host),
-body .workspace-leaf-content:has(.view-content.yd-dashboard-host) {
+/* Some themes paint the leaf container, not only .view-content.
+   The view adds yd-dashboard-host to its containerEl, which is the
+   .workspace-leaf-content element itself. */
+body .workspace-leaf-content.yd-dashboard-host {
   background-color: #f8f7f6 !important;
   background-image: none !important;
 }
@@ -2785,8 +2786,7 @@ body.theme-dark .mod-root .workspace-leaf-content .view-content.yd-dashboard-hos
   background-image: none !important;
 }
 
-body.theme-dark .workspace-leaf-content:has(> .view-content.yd-dashboard-host),
-body.theme-dark .workspace-leaf-content:has(.view-content.yd-dashboard-host) {
+body.theme-dark .workspace-leaf-content.yd-dashboard-host {
   background-color: #1c1b19 !important;
   background-image: none !important;
 }

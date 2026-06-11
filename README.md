@@ -33,11 +33,11 @@ An Obsidian dashboard plugin that gathers your daily events, data logs, tasks, c
 
 ## Installation
 
-### BRAT (recommended)
+### Community plugins (recommended)
 
-1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) community plugin.
-2. In BRAT settings, choose **Add Beta Plugin** and enter `ghh-l-djl/obsidian-habit-dashboard`.
-3. Enable **Habit Dashboard** in Community plugins.
+1. In Obsidian, open **Settings → Community plugins** and make sure Restricted mode is turned off.
+2. Click **Browse**, search for **Habit Dashboard**, and click **Install**.
+3. Click **Enable** to activate the plugin.
 
 ### Manual install
 
