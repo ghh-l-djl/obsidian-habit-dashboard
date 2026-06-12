@@ -15,10 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
 
@@ -43,7 +43,7 @@ jobs:
         run: npm run build
 
       - name: Attest release artifacts (build provenance)
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: "main.js, manifest.json, styles.css"
 
@@ -52,7 +52,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          gh release create "${GITHUB_REF_NAME}" \
-            --title "${GITHUB_REF_NAME}" \
-            --notes "Habit Dashboard ${GITHUB_REF_NAME}. See CHANGELOG / commit history for details." \
-            main.js manifest.json styles.css
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "Release ${GITHUB_REF_NAME} already exists; uploading assets with --clobber"
+            gh release upload "${GITHUB_REF_NAME}" --clobber \
+              main.js manifest.json styles.css
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "${GITHUB_REF_NAME}" \
+              --notes "Habit Dashboard ${GITHUB_REF_NAME}. See CHANGELOG / commit history for details." \
+              main.js manifest.json styles.css
+          fi
