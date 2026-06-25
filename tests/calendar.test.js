@@ -51,3 +51,42 @@ test("orderEventsForDisplay returns a new array, does not mutate input", () => {
   calendar.orderEventsForDisplay(events);
   assert.deepEqual(events, original);
 });
+
+test("reorderEvents reorders only the matching completed-bucket", () => {
+  const events = [
+    { id: "a", completed: false },
+    { id: "b", completed: false },
+    { id: "c", completed: true }
+  ];
+  const result = calendar.reorderEvents(events, false, ["b", "a"]);
+  assert.deepEqual(result.map((e) => e.id), ["b", "a", "c"]);
+});
+
+test("reorderEvents keeps uncompleted bucket before completed bucket when reordering completed", () => {
+  const events = [
+    { id: "a", completed: false },
+    { id: "b", completed: true },
+    { id: "c", completed: true }
+  ];
+  const result = calendar.reorderEvents(events, true, ["c", "b"]);
+  assert.deepEqual(result.map((e) => e.id), ["a", "c", "b"]);
+});
+
+test("reorderEvents falls back to original array when newOrderIds doesn't match the bucket", () => {
+  const events = [
+    { id: "a", completed: false },
+    { id: "b", completed: false }
+  ];
+  const result = calendar.reorderEvents(events, false, ["a", "z"]);
+  assert.deepEqual(result.map((e) => e.id), ["a", "b"]);
+});
+
+test("reorderEvents does not mutate the input array", () => {
+  const events = [
+    { id: "a", completed: false },
+    { id: "b", completed: false }
+  ];
+  const original = events.slice();
+  calendar.reorderEvents(events, false, ["b", "a"]);
+  assert.deepEqual(events, original);
+});
