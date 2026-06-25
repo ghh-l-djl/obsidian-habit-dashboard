@@ -691,6 +691,23 @@ padding-top: 30px;
   background-color: rgba(255, 255, 255, 0.55);
 }
 
+.yd-event-drag-handle {
+  opacity: 0;
+  flex-shrink: 0;
+}
+
+.yd-event-row:hover .yd-event-drag-handle {
+  opacity: 1;
+}
+
+.yd-event-row.is-dragging {
+  opacity: 0.5;
+}
+
+.yd-event-row.is-drop-target {
+  border-top: 2px solid var(--yd-accent-deep);
+}
+
 .yd-event-row input[type="checkbox"] {
   margin-top: 0;
   width: 14px;
