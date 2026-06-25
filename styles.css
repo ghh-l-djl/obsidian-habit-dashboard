@@ -708,6 +708,19 @@ padding-top: 30px;
   border-top: 2px solid var(--yd-accent-deep);
 }
 
+.yd-event-move-buttons {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 0;
+}
+
+.yd-event-move-btn {
+  width: 18px;
+  height: 14px;
+  padding: 0;
+}
+
 .yd-event-row input[type="checkbox"] {
   margin-top: 0;
   width: 14px;
