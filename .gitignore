@@ -8,3 +8,6 @@ Thumbs.db
 .tmp/
 .git/COMMIT_MSG_TMP.txt
 .chat/
+
+publish-process.md
+xhs-post/

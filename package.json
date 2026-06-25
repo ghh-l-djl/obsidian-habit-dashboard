@@ -1,6 +1,6 @@
 {
   "name": "habit-dashboard",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "description": "Development tooling for Habit Dashboard plugin.",
   "scripts": {
