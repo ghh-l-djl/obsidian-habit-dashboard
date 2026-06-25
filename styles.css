@@ -684,6 +684,10 @@ padding-top: 30px;
   gap: 4px;
 }
 
+.yd-event-row--child {
+  margin-left: 20px;
+}
+
 .yd-event-row:hover,
 .yd-task-row:hover,
 .yd-moment-row:hover,
@@ -698,6 +702,30 @@ padding-top: 30px;
 
 .yd-event-row:hover .yd-event-drag-handle {
   opacity: 1;
+}
+
+.yd-event-add-child {
+  width: 22px;
+  height: 22px;
+  padding: 2px;
+  opacity: 0;
+  pointer-events: none;
+  flex-shrink: 0;
+  color: var(--yd-text-soft);
+  transition: opacity 0.12s ease;
+}
+
+.yd-event-row:hover .yd-event-add-child,
+.yd-event-row:focus-within .yd-event-add-child {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .yd-event-add-child {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 .yd-event-row.is-dragging {

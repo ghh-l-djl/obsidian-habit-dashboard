@@ -24,3 +24,19 @@ test("translator falls back to zh when key missing in target language", () => {
   const fallbackKey = "_missing_translation_";
   assert.equal(t(fallbackKey), fallbackKey);
 });
+
+test("event subtask translations exist in both languages", () => {
+  const zh = i18n.createTranslator(() => "zh");
+  const en = i18n.createTranslator(() => "en");
+
+  assert.equal(zh("calendar.addSubEvent"), "添加子事件");
+  assert.equal(en("calendar.addSubEvent"), "Add sub-event");
+  assert.equal(
+    zh("calendar.detachedFromLabel", { title: "父事件", date: "2026-06-25" }),
+    "原属于「父事件」(2026-06-25)"
+  );
+  assert.equal(
+    en("calendar.detachedFromLabel", { title: "Parent", date: "2026-06-25" }),
+    'originally part of "Parent" (2026-06-25)'
+  );
+});

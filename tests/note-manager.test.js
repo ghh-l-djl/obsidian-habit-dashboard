@@ -62,7 +62,9 @@ test("getEventFrontmatter normalizes completed/completedAt/startedAt", () => {
         frontmatter: {
           completed: true,
           completedAt: "2026-06-10 15:29:17",
-          startedAt: new Date(2026, 5, 10, 14, 42, 32)
+          startedAt: new Date(2026, 5, 10, 14, 42, 32),
+          detachedFromTitle: "Parent",
+          detachedFromDate: new Date(2026, 5, 25)
         }
       })
     }
@@ -70,7 +72,9 @@ test("getEventFrontmatter normalizes completed/completedAt/startedAt", () => {
   assert.deepEqual(noteManager.getEventFrontmatter(app, file.path), {
     completed: true,
     completedAt: "2026-06-10 15:29:17",
-    startedAt: "2026-06-10 14:42:32"
+    startedAt: "2026-06-10 14:42:32",
+    detachedFromTitle: "Parent",
+    detachedFromDate: "2026-06-25"
   });
 });
 
@@ -84,6 +88,33 @@ test("getEventFrontmatter treats non-boolean completed as undefined", () => {
   assert.equal(fm.completed, undefined);
   assert.equal(fm.startedAt, null);
   assert.equal(fm.completedAt, null);
+  assert.equal(fm.detachedFromTitle, undefined);
+  assert.equal(fm.detachedFromDate, undefined);
+});
+
+test("updateEventFrontmatter writes and clears detached origin fields", async () => {
+  const file = new TFile("Habit Dashboard/Events/a.md");
+  const frontmatter = {};
+  const app = {
+    vault: { getAbstractFileByPath: () => file },
+    fileManager: {
+      processFrontMatter: async (_file, update) => update(frontmatter)
+    }
+  };
+
+  await noteManager.updateEventFrontmatter(app, file.path, {
+    detachedFromTitle: "Parent",
+    detachedFromDate: "2026-06-25"
+  });
+  assert.equal(frontmatter.detachedFromTitle, "Parent");
+  assert.equal(frontmatter.detachedFromDate, "2026-06-25");
+
+  await noteManager.updateEventFrontmatter(app, file.path, {
+    detachedFromTitle: null,
+    detachedFromDate: null
+  });
+  assert.equal(frontmatter.detachedFromTitle, null);
+  assert.equal(frontmatter.detachedFromDate, null);
 });
 
 function makePlugin({ frontmatter, event }) {

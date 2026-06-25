@@ -208,6 +208,7 @@ const I18N = {
     "section.timer": "计时",
 
     "calendar.addEvent": "+ 添加事件",
+    "calendar.addSubEvent": "添加子事件",
     "calendar.weekTitle": "每周事件",
     "calendar.weekArchive": "归档本周",
     "calendar.weekAddEvent": "+ 添加",
@@ -218,11 +219,14 @@ const I18N = {
     "calendar.postpone": "顺延至明天",
     "calendar.postponeShort": "顺延",
     "calendar.startTask": "开始任务",
+    "calendar.moveUp": "上移",
+    "calendar.moveDown": "下移",
     "calendar.contextDelete": "删除事件",
     "calendar.contextCopy": "复制事件",
     "calendar.contextPaste": "粘贴事件",
     "calendar.deleteConfirmTitle": "确认删除",
     "calendar.deleteConfirmMsg": "将删除事件 “{title}”",
+    "calendar.detachedFromLabel": "原属于「{title}」({date})",
 
     "dataLog.viewMore": "查看历史",
     "dataLog.archiveTitle": "{month}{name}-数据记录",
@@ -392,6 +396,7 @@ const I18N = {
     "section.timer": "Timer",
 
     "calendar.addEvent": "+ Add event",
+    "calendar.addSubEvent": "Add sub-event",
     "calendar.weekTitle": "Weekly Events",
     "calendar.weekArchive": "Archive week",
     "calendar.weekAddEvent": "+ Add",
@@ -402,11 +407,14 @@ const I18N = {
     "calendar.postpone": "Postpone to tomorrow",
     "calendar.postponeShort": "Postpone",
     "calendar.startTask": "Start task",
+    "calendar.moveUp": "Move up",
+    "calendar.moveDown": "Move down",
     "calendar.contextDelete": "Delete event",
     "calendar.contextCopy": "Copy event",
     "calendar.contextPaste": "Paste event",
     "calendar.deleteConfirmTitle": "Confirm delete",
     "calendar.deleteConfirmMsg": "Delete event \"{title}\"?",
+    "calendar.detachedFromLabel": "originally part of \"{title}\" ({date})",
 
     "dataLog.viewMore": "View history",
     "dataLog.archiveTitle": "{month}-{name}-Data",
@@ -710,7 +718,13 @@ function resolveArchivedEventFields(event, frontmatter) {
   return {
     completed: fm.completed !== undefined ? fm.completed : event.completed,
     completedAt: fm.completedAt != null ? fm.completedAt : event.completedAt,
-    startedAt: fm.startedAt != null ? fm.startedAt : event.startedAt
+    startedAt: fm.startedAt != null ? fm.startedAt : event.startedAt,
+    detachedFromTitle: fm.detachedFromTitle != null
+      ? fm.detachedFromTitle
+      : event.detachedFromTitle,
+    detachedFromDate: fm.detachedFromDate != null
+      ? fm.detachedFromDate
+      : event.detachedFromDate
   };
 }
 
@@ -884,11 +898,21 @@ function normalizeDailyEvents(data) {
         filePath: typeof event?.filePath === "string" ? event.filePath : null,
         createdAt: typeof event?.createdAt === "string" ? event.createdAt : null,
         completedAt: typeof event?.completedAt === "string" ? event.completedAt : null,
-        startedAt: typeof event?.startedAt === "string" ? event.startedAt : null
+        startedAt: typeof event?.startedAt === "string" ? event.startedAt : null,
+        parentId: typeof event?.parentId === "string" && event.parentId ? event.parentId : null,
+        detachedFromTitle: typeof event?.detachedFromTitle === "string"
+          ? event.detachedFromTitle
+          : null,
+        detachedFromDate: typeof event?.detachedFromDate === "string"
+          ? event.detachedFromDate
+          : null
       }))
       .sort((a, b) => a.order - b.order);
-    list.forEach((event, idx) => {
-      event.order = idx;
+    const groupCounts = new Map();
+    list.forEach((event) => {
+      const nextOrder = groupCounts.get(event.parentId) || 0;
+      event.order = nextOrder;
+      groupCounts.set(event.parentId, nextOrder + 1);
     });
     out[dateKey] = list;
   }
@@ -1564,7 +1588,7 @@ function _consumePendingWrite(filePath) {
 }
 
 const { makeId } = __yd_require("lib/store");
-const { coerceFrontmatterDate } = __yd_require("lib/date-utils");
+const { coerceFrontmatterDate, formatDateKey } = __yd_require("lib/date-utils");
 const { TFile } = require("obsidian");
 
 function sanitizeFilename(str) {
@@ -1658,6 +1682,8 @@ async function updateEventFrontmatter(app, filePath, partial) {
       if ("completedAt" in partial) fm.completedAt = partial.completedAt ?? null;
       if ("startedAt" in partial) fm.startedAt = partial.startedAt ?? null;
       if ("date" in partial) fm.date = partial.date;
+      if ("detachedFromTitle" in partial) fm.detachedFromTitle = partial.detachedFromTitle ?? null;
+      if ("detachedFromDate" in partial) fm.detachedFromDate = partial.detachedFromDate ?? null;
     });
   } catch (e) {
     _consumePendingWrite(filePath);
@@ -1674,7 +1700,13 @@ function getEventFrontmatter(app, filePath) {
   return {
     completed: typeof fm.completed === "boolean" ? fm.completed : undefined,
     completedAt: coerceFrontmatterDate(fm.completedAt),
-    startedAt: coerceFrontmatterDate(fm.startedAt)
+    startedAt: coerceFrontmatterDate(fm.startedAt),
+    detachedFromTitle: typeof fm.detachedFromTitle === "string" ? fm.detachedFromTitle : undefined,
+    detachedFromDate: typeof fm.detachedFromDate === "string"
+      ? fm.detachedFromDate
+      : fm.detachedFromDate instanceof Date
+        ? formatDateKey(fm.detachedFromDate)
+        : undefined
   };
 }
 
@@ -2049,6 +2081,23 @@ function formatDuration(startedAt, completedAt) {
   return m > 0 ? ` (${h}h ${m}m)` : ` (${h}h)`;
 }
 
+function formatArchivedEventLine({ event, hasNotes, resolved, t }) {
+  const check = resolved.completed ? "x" : " ";
+  const title = event.title || "";
+  const duration = formatDuration(resolved.startedAt, resolved.completedAt);
+  const origin = resolved.detachedFromTitle
+    ? ` ⤷ ${t("calendar.detachedFromLabel", {
+        title: resolved.detachedFromTitle,
+        date: resolved.detachedFromDate
+      })}`
+    : "";
+  if (hasNotes && event.filePath) {
+    const linkPath = event.filePath.replace(/\.md$/, "");
+    return `- [${check}] [[${linkPath}|${title}]]${duration}${origin}`;
+  }
+  return `- [${check}] ${title}${duration}${origin}`;
+}
+
 function getEventList(settings, dateKey) {
   const map = settings?.data?.dailyEvents || {};
   const list = Array.isArray(map[dateKey]) ? map[dateKey] : [];
@@ -2062,21 +2111,82 @@ function setEventList(settings, dateKey, list) {
     delete settings.data.dailyEvents[dateKey];
     return;
   }
-  list.forEach((event, idx) => {
-    event.order = idx;
+  const groups = new Map();
+  list.forEach((event) => {
+    const parentId = normalizeParentId(event);
+    event.parentId = parentId;
+    if (!groups.has(parentId)) groups.set(parentId, []);
+    groups.get(parentId).push(event);
+  });
+  groups.forEach((group) => {
+    group.forEach((event, idx) => {
+      event.order = idx;
+    });
   });
   settings.data.dailyEvents[dateKey] = list;
 }
 
-function createEvent(settings, dateKey, title) {
+function normalizeParentId(event) {
+  return event?.parentId || null;
+}
+
+function getTopLevelEvents(settings, dateKey) {
+  return getEventList(settings, dateKey)
+    .filter((event) => normalizeParentId(event) === null)
+    .sort((a, b) => a.order - b.order);
+}
+
+function getChildEvents(settings, dateKey, parentId) {
+  return getEventList(settings, dateKey)
+    .filter((event) => normalizeParentId(event) === parentId)
+    .sort((a, b) => a.order - b.order);
+}
+
+function orderEventsForDisplay(events) {
+  const undone = events.filter((e) => !e.completed);
+  const done = events.filter((e) => e.completed);
+  return [...undone, ...done];
+}
+
+function flattenEventHierarchy(settings, dateKey, options) {
+  const completedLast = options?.completedLast !== false;
+  const orderGroup = completedLast ? orderEventsForDisplay : (events) => events.slice();
+  const ordered = [];
+  orderGroup(getTopLevelEvents(settings, dateKey)).forEach((event) => {
+    ordered.push(event);
+    ordered.push(...orderGroup(getChildEvents(settings, dateKey, event.id)));
+  });
+  return ordered;
+}
+
+function reorderEvents(events, parentId, completed, newOrderIds) {
+  const normalizedParentId = parentId || null;
+  const isTarget = (event) =>
+    normalizeParentId(event) === normalizedParentId && !!event.completed === completed;
+  const bucket = events.filter(isTarget);
+  const byId = new Map(bucket.map((e) => [e.id, e]));
+  const reordered = newOrderIds.map((id) => byId.get(id)).filter(Boolean);
+  if (
+    reordered.length !== bucket.length ||
+    new Set(newOrderIds).size !== bucket.length
+  ) {
+    return events.slice();
+  }
+  let index = 0;
+  return events.map((event) => (isTarget(event) ? reordered[index++] : event));
+}
+
+function createEvent(settings, dateKey, title, parentId = null) {
   const list = getEventList(settings, dateKey);
+  const normalizedParentId = parentId || null;
   const event = {
     id: makeId("evt"),
     title: (title || "").trim(),
     completed: false,
     startedAt: null,
     completedAt: null,
-    order: list.length
+    order: list.filter((existing) => normalizeParentId(existing) === normalizedParentId).length,
+    parentId: normalizedParentId
   };
   list.push(event);
   setEventList(settings, dateKey, list);
@@ -2110,7 +2220,22 @@ function pasteEvent(settings, dateKey, clipboard) {
   return createEvent(settings, dateKey, clipboard.title);
 }
 
-function postponeUndoneTomorrow(settings, dateKey) {
+function detachOrphans(list, allEventsById, dateKey, candidateIds) {
+  const ids = new Set(list.map((event) => event.id));
+  const detached = [];
+  list.forEach((event) => {
+    if (candidateIds && !candidateIds.has(event.id)) return;
+    if (!event.parentId || ids.has(event.parentId)) return;
+    const parent = allEventsById.get(event.parentId);
+    event.detachedFromTitle = parent?.title || null;
+    event.detachedFromDate = dateKey;
+    event.parentId = null;
+    detached.push(event);
+  });
+  return detached;
+}
+
+async function postponeUndoneTomorrow(settings, dateKey, app) {
   const allEvents = getEventList(settings, dateKey);
   const undone = allEvents.filter((e) => !e.completed);
   if (undone.length === 0) return { moved: [], nextDateKey: null };
@@ -2119,10 +2244,29 @@ function postponeUndoneTomorrow(settings, dateKey) {
   const nextDate = new Date(date);
   nextDate.setDate(nextDate.getDate() + 1);
   const nextDateKey = formatDateKey(nextDate);
-  setEventList(settings, dateKey, allEvents.filter((e) => e.completed));
+  const allEventsById = new Map(allEvents.map((event) => [event.id, event]));
+  const sourceIds = new Set(allEventsById.keys());
+  const remaining = allEvents.filter((e) => e.completed);
   const nextList = getEventList(settings, nextDateKey);
-  setEventList(settings, nextDateKey, [...nextList, ...undone]);
-  return { moved: undone, nextDateKey };
+  const movedList = [...nextList, ...undone];
+  const detached = [
+    ...detachOrphans(remaining, allEventsById, dateKey, sourceIds),
+    ...detachOrphans(movedList, allEventsById, dateKey, sourceIds)
+  ];
+  setEventList(settings, dateKey, remaining);
+  setEventList(settings, nextDateKey, movedList);
+  for (const event of detached) {
+    if (!event.filePath || !app) continue;
+    try {
+      await noteManager.updateEventFrontmatter(app, event.filePath, {
+        detachedFromTitle: event.detachedFromTitle,
+        detachedFromDate: event.detachedFromDate
+      });
+    } catch (e) {
+      new Notice(`同步笔记失败: ${e.message}`);
+    }
+  }
+  return { moved: undone, nextDateKey, detached };
 }
 
 function renderCalendarSection(parent, ctx, opts) {
@@ -2251,7 +2395,7 @@ function renderDayEvents(parent, ctx, eventOpts) {
       text: t("calendar.postpone")
     });
     postponeBtn.onclick = async () => {
-      const { moved, nextDateKey } = postponeUndoneTomorrow(settings, dateKey);
+      const { moved, nextDateKey } = await postponeUndoneTomorrow(settings, dateKey, ctx.app);
       if (moved.length === 0) return;
       for (const event of moved) {
         if (event.filePath) {
@@ -2275,8 +2419,20 @@ function renderDayEvents(parent, ctx, eventOpts) {
     const limit = ctx.getLimit("dailyEvents");
     list.style.maxHeight = `${limit * 30 + 4}px`;
   }
-  events.forEach((event) => {
-    renderEventRow(list, event, dateKey, ctx);
+  const ordered = flattenEventHierarchy(settings, dateKey, { completedLast: true });
+  ordered.forEach((event) => {
+    const parentId = normalizeParentId(event);
+    const groupIds = events
+      .filter((candidate) =>
+        normalizeParentId(candidate) === parentId &&
+        !!candidate.completed === !!event.completed
+      )
+      .sort((a, b) => a.order - b.order)
+      .map((candidate) => candidate.id);
+    renderEventRow(list, event, dateKey, ctx, {
+      isChild: parentId !== null,
+      groupIds
+    });
   });
 
   const wireAddBtn = (addBtn) => {
@@ -2323,9 +2479,86 @@ function renderDayEvents(parent, ctx, eventOpts) {
   }
 }
 
-function renderEventRow(parent, event, dateKey, ctx) {
+function renderReorderControl(row, event, dateKey, ctx, groupIds) {
+  const { settings, t } = ctx;
+  const commit = async (newGroupIds) => {
+    const events = getEventList(settings, dateKey);
+    const merged = reorderEvents(
+      events,
+      normalizeParentId(event),
+      !!event.completed,
+      newGroupIds
+    );
+    setEventList(settings, dateKey, merged);
+    await ctx.save();
+    ctx.refresh();
+  };
+
+  if (Platform?.isMobile) {
+    const idx = groupIds.indexOf(event.id);
+    const wrap = row.createDiv({ cls: "yd-event-move-buttons" });
+    if (idx > 0) {
+      createIconButton(wrap, "chevron-up", {
+        cls: "yd-event-move-btn",
+        label: t("calendar.moveUp"),
+        fallback: "↑",
+        onClick: async () => {
+          const next = groupIds.slice();
+          [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+          await commit(next);
+        }
+      });
+    }
+    if (idx !== -1 && idx < groupIds.length - 1) {
+      createIconButton(wrap, "chevron-down", {
+        cls: "yd-event-move-btn",
+        label: t("calendar.moveDown"),
+        fallback: "↓",
+        onClick: async () => {
+          const next = groupIds.slice();
+          [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+          await commit(next);
+        }
+      });
+    }
+    return;
+  }
+
+  const drag = row.createDiv({ cls: "yd-drag-handle yd-event-drag-handle" });
+  createIconButton(drag, "grip-vertical", { cls: "yd-drag-handle-icon", fallback: "⋮⋮" });
+  drag.setAttribute("draggable", "true");
+  drag.addEventListener("dragstart", (e) => {
+    e.dataTransfer?.setData("text/plain", event.id);
+    row.addClass("is-dragging");
+  });
+  drag.addEventListener("dragend", () => row.removeClass("is-dragging"));
+  row.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    row.addClass("is-drop-target");
+  });
+  row.addEventListener("dragleave", () => row.removeClass("is-drop-target"));
+  row.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    row.removeClass("is-drop-target");
+    const fromId = e.dataTransfer?.getData("text/plain");
+    if (!fromId || fromId === event.id || !groupIds.includes(fromId)) return;
+    const next = groupIds.slice();
+    const fromIdx = next.indexOf(fromId);
+    const toIdx = next.indexOf(event.id);
+    next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, fromId);
+    await commit(next);
+  });
+}
+
+function renderEventRow(parent, event, dateKey, ctx, meta) {
+  const reorderMeta = meta || {};
   const { settings, t } = ctx;
   const row = parent.createDiv({ cls: "yd-event-row" });
+  if (reorderMeta.isChild) row.addClass("yd-event-row--child");
+  if (reorderMeta.groupIds) {
+    renderReorderControl(row, event, dateKey, ctx, reorderMeta.groupIds);
+  }
   const checkbox = row.createEl("input", { type: "checkbox" });
   checkbox.checked = !!event.completed;
   checkbox.onclick = (evt) => evt.stopPropagation();
@@ -2420,14 +2653,45 @@ function renderEventRow(parent, event, dateKey, ctx) {
     };
   }
 
+  if (normalizeParentId(event) === null) {
+    const addChildBtn = createIconButton(row, "plus", {
+      cls: "yd-event-add-child",
+      label: t("calendar.addSubEvent"),
+      fallback: "+",
+      onClick: () => {
+        addChildBtn.style.display = "none";
+        renderInlineEditor(parent, "", async (value) => {
+          addChildBtn.style.display = "";
+          if (!value) return;
+          const child = createEvent(settings, dateKey, value, event.id);
+          try {
+            const filePath = await noteManager.createEventNote(ctx.app, { dateKey, title: value });
+            updateEvent(settings, dateKey, child.id, {
+              filePath,
+              createdAt: noteManager.formatLocalDateTime(new Date())
+            });
+          } catch (e) {
+            new Notice(`创建笔记失败: ${e.message}`);
+            deleteEvent(settings, dateKey, child.id);
+          }
+          await ctx.save();
+          ctx.refresh();
+        }, () => {
+          addChildBtn.style.display = "";
+        }, row);
+      }
+    });
+  }
+
   row.oncontextmenu = (evt) => {
     evt.preventDefault();
     openEventMenu(evt, event, dateKey, ctx);
   };
 }
 
-function renderInlineEditor(parent, initial, onCommit, onCancel) {
+function renderInlineEditor(parent, initial, onCommit, onCancel, afterEl) {
   const wrap = parent.createDiv({ cls: "yd-inline-editor" });
+  if (afterEl && typeof afterEl.after === "function") afterEl.after(wrap);
   const editor = wrap.createEl("textarea", { cls: "yd-event-editor" });
   editor.value = initial || "";
   fitTextarea(editor);
@@ -2596,8 +2860,10 @@ function renderWeeklyView(root, ctx, modal) {
         renderWeeklyView(root, ctx, modal);
       }
     });
-    events.forEach((event) => {
-      renderEventRow(list, event, dateKey, modalCtx);
+    flattenEventHierarchy(ctx.settings, dateKey, { completedLast: false }).forEach((event) => {
+      renderEventRow(list, event, dateKey, modalCtx, {
+        isChild: normalizeParentId(event) !== null
+      });
     });
     if (!isMobileWeek) {
       const addBtn = col.createEl("button", { cls: "yd-add-button", text: t("calendar.weekAddEvent") });
@@ -2627,7 +2893,7 @@ function renderWeeklyView(root, ctx, modal) {
           text: t("calendar.postponeShort")
         });
         postponeWeekBtn.onclick = async () => {
-          const { moved, nextDateKey } = postponeUndoneTomorrow(ctx.settings, dateKey);
+          const { moved, nextDateKey } = await postponeUndoneTomorrow(ctx.settings, dateKey, ctx.app);
           if (moved.length === 0) return;
           for (const event of moved) {
             if (event.filePath) {
@@ -2683,16 +2949,9 @@ function archiveWeek(ctx, monday, sunday) {
         heading: dateKey,
         lines: enriched.length === 0
           ? ["(空)"]
-          : enriched.map(({ event, hasNotes, resolved }) => {
-              const check = resolved.completed ? "x" : " ";
-              const title = event.title || "";
-              const duration = formatDuration(resolved.startedAt, resolved.completedAt);
-              if (hasNotes && event.filePath) {
-                const linkPath = event.filePath.replace(/\.md$/, "");
-                return `- [${check}] [[${linkPath}|${title}]]${duration}`;
-              }
-              return `- [${check}] ${title}${duration}`;
-            })
+          : enriched.map(({ event, hasNotes, resolved }) =>
+              formatArchivedEventLine({ event, hasNotes, resolved, t })
+            )
       }));
 
       const body = buildArchiveBody(
@@ -2732,12 +2991,18 @@ module.exports = {
   openWeeklyModal,
   getEventList,
   setEventList,
+  getTopLevelEvents,
+  getChildEvents,
   createEvent,
   updateEvent,
   deleteEvent,
   copyEvent,
   pasteEvent,
-  postponeUndoneTomorrow
+  postponeUndoneTomorrow,
+  orderEventsForDisplay,
+  flattenEventHierarchy,
+  reorderEvents,
+  formatArchivedEventLine
 };
 
 };

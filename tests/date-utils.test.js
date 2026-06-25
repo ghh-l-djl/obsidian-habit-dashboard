@@ -59,21 +59,43 @@ test("coerceFrontmatterDate returns null for null/undefined", () => {
 });
 
 test("resolveArchivedEventFields prefers frontmatter values when present", () => {
-  const event = { completed: false, completedAt: null, startedAt: null };
-  const frontmatter = { completed: true, completedAt: "2026-06-10 15:29:17", startedAt: "2026-06-10 14:42:32" };
+  const event = {
+    completed: false,
+    completedAt: null,
+    startedAt: null,
+    detachedFromTitle: "Old parent",
+    detachedFromDate: "2026-06-24"
+  };
+  const frontmatter = {
+    completed: true,
+    completedAt: "2026-06-10 15:29:17",
+    startedAt: "2026-06-10 14:42:32",
+    detachedFromTitle: "Parent",
+    detachedFromDate: "2026-06-25"
+  };
   assert.deepEqual(dateUtils.resolveArchivedEventFields(event, frontmatter), {
     completed: true,
     completedAt: "2026-06-10 15:29:17",
-    startedAt: "2026-06-10 14:42:32"
+    startedAt: "2026-06-10 14:42:32",
+    detachedFromTitle: "Parent",
+    detachedFromDate: "2026-06-25"
   });
 });
 
 test("resolveArchivedEventFields falls back to event values when frontmatter is null", () => {
-  const event = { completed: true, completedAt: "2026-06-10 15:29:17", startedAt: "2026-06-10 14:42:32" };
+  const event = {
+    completed: true,
+    completedAt: "2026-06-10 15:29:17",
+    startedAt: "2026-06-10 14:42:32",
+    detachedFromTitle: "Parent",
+    detachedFromDate: "2026-06-25"
+  };
   assert.deepEqual(dateUtils.resolveArchivedEventFields(event, null), {
     completed: true,
     completedAt: "2026-06-10 15:29:17",
-    startedAt: "2026-06-10 14:42:32"
+    startedAt: "2026-06-10 14:42:32",
+    detachedFromTitle: "Parent",
+    detachedFromDate: "2026-06-25"
   });
 });
 
@@ -83,6 +105,8 @@ test("resolveArchivedEventFields falls back per-field for partial frontmatter", 
   assert.deepEqual(dateUtils.resolveArchivedEventFields(event, frontmatter), {
     completed: true,
     completedAt: "2026-06-10 15:29:17",
-    startedAt: "2026-06-10 14:42:32"
+    startedAt: "2026-06-10 14:42:32",
+    detachedFromTitle: undefined,
+    detachedFromDate: undefined
   });
 });

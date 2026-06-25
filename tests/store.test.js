@@ -82,6 +82,31 @@ test("normalizeDailyEvents preserves startedAt and defaults missing values to nu
   assert.equal(out["2026-06-10"][1].startedAt, null);
 });
 
+test("normalizeDailyEvents preserves event subtask metadata and reindexes sibling groups", () => {
+  const out = store.normalizeDailyEvents({
+    "2026-06-25": [
+      { id: "p2", title: "Parent 2", parentId: null, order: 8 },
+      {
+        id: "c2",
+        title: "Child 2",
+        parentId: "p1",
+        order: 7,
+        detachedFromTitle: "Old parent",
+        detachedFromDate: "2026-06-24"
+      },
+      { id: "p1", title: "Parent 1", order: 3 },
+      { id: "c1", title: "Child 1", parentId: "p1", order: 2 }
+    ]
+  });
+
+  assert.deepEqual(
+    out["2026-06-25"].map((event) => [event.id, event.parentId, event.order]),
+    [["c1", "p1", 0], ["p1", null, 0], ["c2", "p1", 1], ["p2", null, 1]]
+  );
+  assert.equal(out["2026-06-25"][2].detachedFromTitle, "Old parent");
+  assert.equal(out["2026-06-25"][2].detachedFromDate, "2026-06-24");
+});
+
 test("normalizeCheckIn defaults cycleDays to 1 when missing", () => {
   const settings = store.normalizeSettings({
     data: {
