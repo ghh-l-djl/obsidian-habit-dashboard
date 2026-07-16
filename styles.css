@@ -365,6 +365,21 @@ padding-top: 30px;
   padding-bottom: 14px;
 }
 
+/* Let Check-in consume the desktop column's remaining height. The quick-link
+   area keeps only its content/minimum height instead of sharing the free space. */
+.yd-col-left > .yd-section-checkin {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.yd-col-left > .yd-section-checkin > .yd-section-footer {
+  margin-top: auto;
+}
+
+.yd-col-left > .yd-quick-side {
+  flex: 0 0 auto;
+}
+
 .yd-section-moments {
   padding-bottom: 20px;
 }
