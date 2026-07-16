@@ -1,5 +1,7 @@
 # Check-in Cycle Feature Implementation Plan
 
+**Status:** Implemented. This is a historical execution plan; unchecked boxes preserve the original sequence and are not open work.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a per-item `cycleDays` field to check-in items so that an item only appears on the main dashboard after `cycleDays` days have elapsed since the last check-in; settings UI lets the user configure it.
@@ -565,7 +567,7 @@ Expected: clean output.
 - [ ] **Step 4: Copy bundle to Obsidian plugin folder and test manually**
 
 ```bash
-cp main.js /Users/ghh/Documents/A第二大脑/.obsidian/plugins/yori-dashboard/main.js
+cp main.js /Users/ghh/Documents/A第二大脑/.obsidian/plugins/habit-dashboard/main.js
 ```
 
 Open Obsidian, go to Check-in settings. Verify:

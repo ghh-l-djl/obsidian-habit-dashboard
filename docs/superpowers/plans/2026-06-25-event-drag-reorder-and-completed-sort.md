@@ -1,5 +1,7 @@
 # Event Drag-Reorder and Completed-Sort Implementation Plan
 
+**Status:** Implemented. This is a historical execution plan; unchecked boxes preserve the original sequence and are not open work.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let users manually reorder daily events (drag on desktop, up/down buttons on mobile) and have completed events always render below uncompleted ones in the main dashboard panel.

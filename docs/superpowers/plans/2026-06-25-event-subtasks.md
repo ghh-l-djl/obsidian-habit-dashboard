@@ -1,5 +1,7 @@
 # Event Subtasks Implementation Plan
 
+**Status:** Implemented. This is a historical execution plan; unchecked boxes preserve the original sequence and are not open work.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add one-level child events to daily and weekly event views, with independent notes/status/timers, sibling-scoped ordering, orphan detachment during postponement, and archive origin labels.

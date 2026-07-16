@@ -1,5 +1,7 @@
 # Archive Duration & startedAt Sync Fix Implementation Plan
 
+**Status:** Implemented. This is a historical execution plan; unchecked boxes preserve the original sequence and are not open work.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Stop `startedAt` from being silently dropped on plugin reload, and make weekly archive duration/completion lines authoritative from each event's `.md` frontmatter when available.
@@ -918,7 +920,7 @@ Expected: bundle written to `main.js` with no errors.
 
 1. In your test vault, reload the Habit Dashboard plugin (or restart Obsidian) to load the freshly built `main.js`.
 2. On today's calendar, add a new event and click the ▶ start button.
-3. Open `.obsidian/plugins/yori-dashboard/data.json` and confirm the event in `data.dailyEvents` has a non-null `startedAt` string.
+3. Open `.obsidian/plugins/habit-dashboard/data.json` and confirm the event in `data.dailyEvents` has a non-null `startedAt` string.
 4. Reload the plugin again (Obsidian → disable/enable the plugin, or restart Obsidian).
 5. Re-open `data.json` and confirm `startedAt` is **still present** (previously it would disappear after this reload).
 

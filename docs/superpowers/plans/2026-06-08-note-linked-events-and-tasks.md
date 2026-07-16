@@ -1,5 +1,7 @@
 # Note-Linked Events & Tasks Implementation Plan
 
+**Status:** Implemented. This is a historical execution plan; unchecked boxes preserve the original sequence and are not open work.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Each calendar event and each task box is backed by a Markdown file — enabling click-to-open, title sync on rename, and bidirectional checklist sync between the box file and plugin task data.
@@ -29,7 +31,7 @@
 
 - [ ] **Step 1.1: Write the module**
 
-Create `/Users/ghh/Documents/编程/项目/obsidian-yori-dashboard/lib/note-manager.js` with this full content:
+Create `/Users/ghh/Documents/编程/项目/obsidian-habit-dashboard/lib/note-manager.js` with this full content:
 
 ```js
 "use strict";
@@ -911,7 +913,7 @@ git commit -m "feat: link task boxes to MD files with open/checklist-sync/trash"
 - [ ] **Step 6.1: Find the CSS file**
 
 ```bash
-find /Users/ghh/Documents/编程/项目/obsidian-yori-dashboard -name "*.css" | head -10
+find /Users/ghh/Documents/编程/项目/obsidian-habit-dashboard -name "*.css" | head -10
 ```
 
 - [ ] **Step 6.2: Add cursor pointer style for linked elements**

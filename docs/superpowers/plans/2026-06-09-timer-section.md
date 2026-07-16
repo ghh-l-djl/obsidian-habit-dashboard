@@ -1,5 +1,7 @@
 # Timer Section Implementation Plan
 
+**Status:** Implemented. This is a historical execution plan; unchecked boxes preserve the original sequence and are not open work.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a standalone 60-minute countdown timer as a `yd-section` card in the left column of the dashboard, with SVG progress ring, click-to-edit duration, state persistence across closes, and a system notification on completion.
